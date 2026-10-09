@@ -248,7 +248,7 @@ tbody td{padding:5px 8px;border-top:1px solid var(--border);vertical-align:middl
 <div id="admin-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;overflow-y:auto;padding:20px 12px;">
   <div style="background:var(--bg2);border-radius:10px;max-width:860px;margin:auto;padding:20px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <h2 style="font-size:15px;font-weight:700;">Gerenciar Usuários</h2>
+      <h2 style="font-size:15px;font-weight:700;">Acesso ao Pavimento Intertravado</h2>
       <button onclick="fecharAdmin()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--fg3);">×</button>
     </div>
     <div id="admin-corpo">Carregando…</div>
@@ -1690,14 +1690,24 @@ Nuvem.aoMudarSessao = function(u){
     irParaLogin();
     return;
   }
-  if(u.erro){ mostrarMsgLogin('Erro ao carregar perfil: '+u.erro,'erro'); return; }
-  if(u.recusado){
+  if(u.erro){
+    irParaLogin(); loginEl.hidden = false; appEl.hidden = true;
+    mostrarMsgLogin('Erro ao carregar perfil: '+u.erro,'erro'); setLoginBusy(false); return;
+  }
+  if(u.recusado && !u.admin){
     irParaEspera();
     const p = document.querySelector('#login-espera p');
     if(p) p.textContent = 'Seu acesso foi recusado pelo administrador. Entre em contato para mais informações.';
-    loginEl.hidden = false; appEl.hidden = true; return;
+    loginEl.hidden = false; appEl.hidden = true; setLoginBusy(false); return;
   }
-  if(!u.liberado){ irParaEspera(); loginEl.hidden = false; appEl.hidden = true; return; }
+  if(!u.liberado){
+    irParaEspera();
+    const p = document.querySelector('#login-espera p');
+    if(p) p.textContent = u.vencida
+      ? 'Seu acesso ao Pavimento Intertravado venceu. Fale com o administrador para renovar.'
+      : 'Seu pedido de acesso ao Pavimento Intertravado foi enviado ao administrador. Assim que for liberado, é só entrar de novo.';
+    loginEl.hidden = false; appEl.hidden = true; setLoginBusy(false); return;
+  }
   // Acesso liberado
   loginEl.hidden = true; appEl.hidden = false;
   barEl.classList.add('vis');
@@ -1729,14 +1739,16 @@ function cfgValida(c){
     ]);
     const app = initializeApp(cfg);
     const a = auth.getAuth(app);
-    const d = fs.getFirestore(app);
+    let d;
+    try{ d = fs.initializeFirestore(app, {experimentalAutoDetectLongPolling: true}); }
+    catch(_){ d = fs.getFirestore(app); }
     await auth.setPersistence(a, auth.browserLocalPersistence).catch(()=>{});
     Nuvem._fb = {a, d, auth, fs};
     Nuvem.disponivel = true;
     auth.onAuthStateChanged(a, async (u)=>{
       if(!u){ Nuvem.usuario = null; if(Nuvem.aoMudarSessao) Nuvem.aoMudarSessao(null); return; }
-      try{ Nuvem.usuario = await carregarPerfil(u); }
-      catch(e){ Nuvem.usuario = {uid:u.uid, usuario:nomeDeEmail(u.email), erro:(e&&e.message)||String(e)}; }
+      try{ Nuvem.usuario = await comPrazo(carregarPerfil(u), 20000, 'o servidor não respondeu (tempo esgotado). Recarregue a página e tente de novo.'); }
+      catch(e){ console.error('Perfil:', e); Nuvem.usuario = {uid:u.uid, usuario:nomeDeEmail(u.email), erro:(e&&e.message)||String(e)}; }
       if(Nuvem.aoMudarSessao) Nuvem.aoMudarSessao(Nuvem.usuario);
     });
   }catch(e){
@@ -1760,27 +1772,44 @@ async function carregarPerfil(u){
   const {d, fs} = Nuvem._fb;
   const ref = fs.doc(d, 'usuarios', u.uid);
   let snap = await fs.getDoc(ref);
+  const ehAdmin0 = listaAdmins().indexOf(String(u.email||'').toLowerCase()) >= 0;
   if(!snap.exists()){
+    /* Conta nova criada pelo Intertravado: NÃO libera o Pavimento Flexível (ativo:false)
+       e registra o pedido de acesso só ao Intertravado. */
     const pend = Nuvem._pendente || {nome:'', empresa:''};
     await fs.setDoc(ref, {
       usuario: nomeDeEmail(u.email), email: u.email || '',
       nome: pend.nome, empresa: pend.empresa, ativo: false, admin: false, recusado: false,
-      validade: null, criadoEm: fs.serverTimestamp()
+      validade: null, criadoEm: fs.serverTimestamp(),
+      intertravadoSolicitado: true, intertravadoAtivo: false
     });
     Nuvem._pendente = null;
     snap = await fs.getDoc(ref);
+  } else if(!ehAdmin0){
+    /* Conta que já existia (ex.: do Pavimento Flexível): pede acesso ao Intertravado */
+    const v = snap.data() || {};
+    if(!v.intertravadoSolicitado && !v.intertravadoAtivo){
+      try{ await fs.updateDoc(ref, {intertravadoSolicitado: true}); snap = await fs.getDoc(ref); }
+      catch(e){ console.warn('Pedido de acesso ao Intertravado não registrado:', e); }
+    }
   }
   const p = snap.data() || {};
-  const venc = paraData(p.validade);
-  const ehAdmin = listaAdmins().indexOf(String(u.email||'').toLowerCase()) >= 0 || !!p.admin;
+  /* Acesso ao Intertravado é independente do Pavimento Flexível e do Orçamento */
+  const venc = paraData(p.intertravadoValidade);
+  const ehAdmin = ehAdmin0 || !!p.admin;
   return {
     uid: u.uid, email: u.email || '',
     usuario: p.usuario || nomeDeEmail(u.email),
     nome: p.nome || '', empresa: p.empresa || '',
-    admin: ehAdmin, ativo: !!p.ativo, recusado: !!p.recusado, validade: venc,
+    admin: ehAdmin, ativo: !!p.intertravadoAtivo, recusado: !!p.intertravadoRecusado, validade: venc,
     vencida: !!(venc && venc.getTime() < Date.now()),
     get liberado(){ return this.admin || (this.ativo && !this.vencida); }
   };
+}
+
+/* Evita ficar preso em "Entrando…" se o servidor não responder */
+function comPrazo(promessa, ms, msg){
+  return Promise.race([promessa, new Promise((_,rej)=>setTimeout(()=>rej(new Error(msg)), ms))]);
 }
 
 Nuvem.entrar = async function(usuario, senha){
@@ -1859,15 +1888,18 @@ Nuvem.listarUsuarios = async function(){
   if(!u || !u.admin) throw new Error('Somente administradores.');
   const snap = await fs.getDocs(fs.query(fs.collection(d,'usuarios'), fs.limit(500)));
   const admins = listaAdmins();
+  /* Mostra apenas quem pediu ou tem acesso ao Intertravado (e os administradores) */
   const lista = snap.docs.map(x=>{
     const v = x.data();
-    const venc = paraData(v.validade);
+    const venc = paraData(v.intertravadoValidade);
     return {uid:x.id, usuario:v.usuario||'', nome:v.nome||'', empresa:v.empresa||'',
-            email:v.email||'', ativo:!!v.ativo, recusado:!!v.recusado,
+            email:v.email||'', ativo:!!v.intertravadoAtivo, recusado:!!v.intertravadoRecusado,
+            solicitado: !!v.intertravadoSolicitado,
             criadoEm: paraData(v.criadoEm), validade:venc,
             admin: admins.indexOf(String(v.email||'').toLowerCase()) >= 0 || !!v.admin,
             vencida: !!(venc && venc.getTime() < Date.now())};
-  }).sort((a,b)=> (a.usuario||'').localeCompare(b.usuario||''));
+  }).filter(x => x.admin || x.solicitado || x.ativo || x.recusado)
+    .sort((a,b)=> (a.ativo===b.ativo ? 0 : a.ativo ? 1 : -1) || (a.usuario||'').localeCompare(b.usuario||''));
   admins.forEach(em => {
     if(!lista.some(x => String(x.email||'').toLowerCase() === em))
       lista.push({uid:null, usuario:nomeDeEmail(em), nome:'', empresa:'', email:em,
@@ -1880,12 +1912,11 @@ Nuvem.listarUsuarios = async function(){
 Nuvem.atualizarUsuario = async function(uid, campos){
   const {d, fs} = Nuvem._fb, u = Nuvem.usuario;
   if(!u || !u.admin) throw new Error('Somente administradores.');
+  /* Só altera campos do Intertravado — nunca mexe no acesso ao Pavimento Flexível ou Orçamento */
   const corpo = {};
-  if('ativo'    in campos) corpo.ativo    = !!campos.ativo;
-  if('recusado' in campos) corpo.recusado = !!campos.recusado;
-  if('nome'     in campos) corpo.nome     = String(campos.nome||'').slice(0,120);
-  if('empresa'  in campos) corpo.empresa  = String(campos.empresa||'').slice(0,120);
-  if('validade' in campos) corpo.validade = campos.validade ? new Date(campos.validade+'T23:59:59') : null;
+  if('ativo'    in campos) corpo.intertravadoAtivo    = !!campos.ativo;
+  if('recusado' in campos) corpo.intertravadoRecusado = !!campos.recusado;
+  if('validade' in campos) corpo.intertravadoValidade = campos.validade ? new Date(campos.validade+'T23:59:59') : null;
   await fs.updateDoc(fs.doc(d,'usuarios',uid), corpo);
 };
 
@@ -1945,7 +1976,7 @@ document.getElementById('form-login').addEventListener('submit', async e=>{
   setLoginBusy(true);
   mostrarMsgLogin('Entrando…','info');
   try{
-    await Nuvem.entrar(usuario, senha);
+    await comPrazo(Nuvem.entrar(usuario, senha), 20000, 'O servidor não respondeu. Verifique a internet e tente de novo.');
     // aoMudarSessao cuidará do restante
   }catch(e){ mostrarMsgLogin(e.message,'erro'); setLoginBusy(false); }
 });
@@ -2053,7 +2084,7 @@ function renderAdmin(lista){
   corpo.innerHTML = h;
 
   // Delegar eventos
-  corpo.addEventListener('click', async ev=>{
+  corpo.onclick = async ev=>{
     const btn = ev.target.closest('[data-acao]');
     if(!btn) return;
     const i = +btn.dataset.i;
@@ -2083,6 +2114,6 @@ function renderAdmin(lista){
       toast('Erro: ' + e.message, true);
       btn.disabled = false;
     }
-  });
+  };
 }
 </script>
