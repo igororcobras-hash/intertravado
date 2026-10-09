@@ -184,6 +184,10 @@ tbody td{padding:5px 8px;border-top:1px solid var(--border);vertical-align:middl
 .lista-nuvem th{background:var(--bg);color:var(--fg2);padding:6px 8px;text-align:left;font-size:11px;border-bottom:1px solid var(--border);}
 .lista-nuvem td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
 .lista-nuvem .acoes{display:flex;flex-wrap:wrap;gap:4px;}
+.lista-nuvem .progs{display:flex;flex-direction:column;gap:3px;font-size:12px;white-space:nowrap;}
+.lista-nuvem .progs label{display:flex;align-items:center;gap:5px;cursor:pointer;}
+.lista-nuvem .progs .pediu{font-size:10px;font-weight:700;color:var(--warn-fg);background:var(--warn);border:1px solid var(--warn-border);border-radius:8px;padding:0 5px;}
+.badge-info{background:var(--out);color:var(--accent);}
 .lista-nuvem .badge{white-space:nowrap;display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;}
 .badge-ok{background:var(--ok);color:var(--ok-fg);}
 .badge-pend{background:var(--warn);color:var(--warn-fg);}
@@ -246,9 +250,9 @@ tbody td{padding:5px 8px;border-top:1px solid var(--border);vertical-align:middl
 
 <!-- PAINEL ADMIN (modal) -->
 <div id="admin-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;overflow-y:auto;padding:20px 12px;">
-  <div style="background:var(--bg2);border-radius:10px;max-width:860px;margin:auto;padding:20px;">
+  <div style="background:var(--bg2);border-radius:10px;max-width:1100px;margin:auto;padding:20px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <h2 style="font-size:15px;font-weight:700;">Acesso ao Pavimento Intertravado</h2>
+      <h2 style="font-size:15px;font-weight:700;">Usuários</h2>
       <button onclick="fecharAdmin()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--fg3);">×</button>
     </div>
     <div id="admin-corpo">Carregando…</div>
@@ -1715,6 +1719,7 @@ Nuvem.aoMudarSessao = function(u){
   if(admEl) admEl.hidden = !u.admin;
   if(btnSair) btnSair.hidden = false;
   if(btnUsr)  btnUsr.hidden = !u.admin;
+  if(u.admin && window.atualizarSeloPendentes) window.atualizarSeloPendentes();
   setLoginBusy(false);
 };
 
@@ -1795,13 +1800,13 @@ async function carregarPerfil(u){
   }
   const p = snap.data() || {};
   /* Acesso ao Intertravado é independente do Pavimento Flexível e do Orçamento */
-  const venc = paraData(p.intertravadoValidade);
+  const venc = paraData(p.validade);
   const ehAdmin = ehAdmin0 || !!p.admin;
   return {
     uid: u.uid, email: u.email || '',
     usuario: p.usuario || nomeDeEmail(u.email),
     nome: p.nome || '', empresa: p.empresa || '',
-    admin: ehAdmin, ativo: !!p.intertravadoAtivo, recusado: !!p.intertravadoRecusado, validade: venc,
+    admin: ehAdmin, ativo: !!p.intertravadoAtivo, recusado: !!p.recusado, validade: venc,
     vencida: !!(venc && venc.getTime() < Date.now()),
     get liberado(){ return this.admin || (this.ativo && !this.vencida); }
   };
@@ -1888,23 +1893,21 @@ Nuvem.listarUsuarios = async function(){
   if(!u || !u.admin) throw new Error('Somente administradores.');
   const snap = await fs.getDocs(fs.query(fs.collection(d,'usuarios'), fs.limit(500)));
   const admins = listaAdmins();
-  /* Mostra apenas quem pediu ou tem acesso ao Intertravado (e os administradores) */
   const lista = snap.docs.map(x=>{
     const v = x.data();
-    const venc = paraData(v.intertravadoValidade);
+    const venc = paraData(v.validade);
     return {uid:x.id, usuario:v.usuario||'', nome:v.nome||'', empresa:v.empresa||'',
-            email:v.email||'', ativo:!!v.intertravadoAtivo, recusado:!!v.intertravadoRecusado,
-            solicitado: !!v.intertravadoSolicitado,
+            email:v.email||'', ativo:!!v.ativo, recusado:!!v.recusado,
+            orcamentoAtivo:!!v.orcamentoAtivo, intertravadoAtivo:!!v.intertravadoAtivo,
+            orcamentoSolicitado:!!v.orcamentoSolicitado, intertravadoSolicitado:!!v.intertravadoSolicitado,
             criadoEm: paraData(v.criadoEm), validade:venc,
             admin: admins.indexOf(String(v.email||'').toLowerCase()) >= 0 || !!v.admin,
             vencida: !!(venc && venc.getTime() < Date.now())};
-  }).filter(x => x.admin || x.solicitado || x.ativo || x.recusado)
-    .sort((a,b)=> (a.ativo===b.ativo ? 0 : a.ativo ? 1 : -1) || (a.usuario||'').localeCompare(b.usuario||''));
+  });
   admins.forEach(em => {
     if(!lista.some(x => String(x.email||'').toLowerCase() === em))
-      lista.push({uid:null, usuario:nomeDeEmail(em), nome:'', empresa:'', email:em,
-                  ativo:true, recusado:false, criadoEm:null, validade:null, admin:true,
-                  vencida:false, nuncaEntrou:true});
+      lista.push({uid:null, usuario:nomeDeEmail(em), nome:'', empresa:'', email:em, ativo:true, recusado:false,
+                  criadoEm:null, validade:null, admin:true, vencida:false, nuncaEntrou:true});
   });
   return lista;
 };
@@ -1912,11 +1915,11 @@ Nuvem.listarUsuarios = async function(){
 Nuvem.atualizarUsuario = async function(uid, campos){
   const {d, fs} = Nuvem._fb, u = Nuvem.usuario;
   if(!u || !u.admin) throw new Error('Somente administradores.');
-  /* Só altera campos do Intertravado — nunca mexe no acesso ao Pavimento Flexível ou Orçamento */
   const corpo = {};
-  if('ativo'    in campos) corpo.intertravadoAtivo    = !!campos.ativo;
-  if('recusado' in campos) corpo.intertravadoRecusado = !!campos.recusado;
-  if('validade' in campos) corpo.intertravadoValidade = campos.validade ? new Date(campos.validade+'T23:59:59') : null;
+  ['ativo','orcamentoAtivo','intertravadoAtivo','recusado'].forEach(k => { if(k in campos) corpo[k] = !!campos[k]; });
+  if('nome'     in campos) corpo.nome     = String(campos.nome||'').slice(0,120);
+  if('empresa'  in campos) corpo.empresa  = String(campos.empresa||'').slice(0,120);
+  if('validade' in campos) corpo.validade = campos.validade ? new Date(campos.validade+'T23:59:59') : null;
   await fs.updateDoc(fs.doc(d,'usuarios',uid), corpo);
 };
 
@@ -2018,102 +2021,126 @@ document.addEventListener('nuvem-pronta', ()=>{
 });
 
 /* ============================================================
-   PAINEL DE ADMINISTRAÇÃO
+   PAINEL DE ADMINISTRAÇÃO — igual ao do Pavimento Flexível.
+   Um login por usuário; em "Programas" o administrador marca
+   o que cada pessoa pode usar.
    ============================================================ */
+const PROGRAMAS = [
+  { campo: 'ativo',             nome: 'Pavimento Flexível',     pedido: null },
+  { campo: 'orcamentoAtivo',    nome: 'Orçamento',              pedido: 'orcamentoSolicitado' },
+  { campo: 'intertravadoAtivo', nome: 'Pavimento Intertravado', pedido: 'intertravadoSolicitado' }
+];
+function pediuPrograma(u, p){
+  if(p.pedido) return !!u[p.pedido];
+  return !(u.orcamentoSolicitado || u.intertravadoSolicitado);
+}
+function esc(t){
+  return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 window.abrirAdmin = async function(){
   const bg = document.getElementById('admin-bg');
   const corpo = document.getElementById('admin-corpo');
   bg.style.display = 'flex';
   corpo.innerHTML = '<p style="font-size:13px;color:var(--fg2)">Carregando…</p>';
-  try{
-    const lista = await Nuvem.listarUsuarios();
-    renderAdmin(lista);
-  }catch(e){
-    corpo.innerHTML = '<p style="color:var(--warn-fg)">'+e.message+'</p>';
-  }
+  try{ renderAdmin(await Nuvem.listarUsuarios()); }
+  catch(e){ corpo.innerHTML = '<p style="color:var(--warn-fg)">'+esc(e.message)+'</p>'; }
 };
+window.fecharAdmin = function(){ document.getElementById('admin-bg').style.display = 'none'; };
 
-window.fecharAdmin = function(){
-  document.getElementById('admin-bg').style.display = 'none';
-};
-
-function fmtData(d){
-  if(!d) return '—';
-  return d.toLocaleDateString('pt-BR');
+function atualizarSeloPendentes(){
+  const b = document.getElementById('btn-usuarios');
+  if(!b || !Nuvem.usuario || !Nuvem.usuario.admin) return;
+  Nuvem.listarUsuarios().then(l=>{
+    const n = l.filter(x => !x.admin && !x.recusado && !PROGRAMAS.some(p => x[p.campo])).length;
+    b.textContent = n ? 'Usuários ('+n+')' : 'Usuários';
+  }).catch(()=>{});
 }
+window.atualizarSeloPendentes = atualizarSeloPendentes;
 
 function renderAdmin(lista){
   const corpo = document.getElementById('admin-corpo');
-  if(!lista.length){ corpo.innerHTML = '<p style="color:var(--fg2);font-size:13px">Nenhum usuário cadastrado.</p>'; return; }
-  let h = `<div style="overflow-x:auto"><table class="lista-nuvem">
-  <thead><tr>
-    <th>Usuário</th><th>Nome</th><th>Empresa</th><th>E-mail</th>
-    <th>Cadastro</th><th>Validade</th><th>Status</th><th>Ações</th>
-  </tr></thead><tbody>`;
+  if(!lista.length){ corpo.innerHTML = '<p style="color:var(--fg2);font-size:13px">Nenhum usuário cadastrado ainda. Quem criar conta na tela de login aparece aqui.</p>'; return; }
+  const algum  = u => PROGRAMAS.some(p => u[p.campo]);
+  const estado = u => u.admin ? 'adm' : u.recusado ? 'rec' : !algum(u) ? 'pen' : u.vencida ? 'ven' : 'ok';
+  const ordem  = {adm:-1, pen:0, ven:1, ok:2, rec:3};
+  lista.sort((x,y)=> ordem[estado(x)] - ordem[estado(y)] || (x.nome||x.usuario).localeCompare(y.nome||y.usuario));
+  const rotulo = {adm:'Administrador', rec:'Recusado', pen:'Aguardando aprovação', ven:'Licença vencida', ok:'Ativo'};
+  const cor    = {adm:'badge-admin', rec:'badge-pend', pen:'badge-pend', ven:'badge-pend', ok:'badge-ok'};
+  let h = '<p style="font-size:12px;color:var(--fg2);margin-bottom:6px">Administradores no topo, depois os cadastros pendentes. Marque em “Programas” o que cada pessoa pode usar. “Redefinir senha” envia ao e-mail da pessoa um link para criar nova senha.</p>'+
+          '<div style="overflow-x:auto"><table class="lista-nuvem"><thead><tr><th>E-mail</th><th>Nome / Empresa</th><th>Programas</th><th>Validade</th><th>Situação</th><th></th></tr></thead><tbody>';
   lista.forEach((u,i)=>{
-    const statusBadge = u.admin
-      ? `<span class="badge badge-admin">Admin</span>`
-      : u.nuncaEntrou
-        ? `<span class="badge" style="background:var(--out);color:var(--accent2)">Nunca entrou</span>`
-        : u.recusado
-          ? `<span class="badge badge-pend">Recusado</span>`
-          : u.ativo
-            ? (u.vencida ? `<span class="badge badge-pend">Vencido</span>` : `<span class="badge badge-ok">Ativo</span>`)
-            : `<span class="badge badge-pend">Pendente</span>`;
-    const acoes = u.admin || u.nuncaEntrou ? '—' : `
-      <div class="acoes">
-        ${!u.ativo && !u.recusado ? `<button class="btn-adm ok" data-i="${i}" data-acao="liberar">Liberar</button>` : ''}
-        ${u.ativo ? `<button class="btn-adm rec" data-i="${i}" data-acao="revogar">Revogar</button>` : ''}
-        ${!u.recusado ? `<button class="btn-adm rec" data-i="${i}" data-acao="recusar">Recusar</button>` : ''}
-        ${u.recusado ? `<button class="btn-adm ok" data-i="${i}" data-acao="liberar">Reativar</button>` : ''}
-        <input type="date" data-i="${i}" data-campo="validade" value="${u.validade ? u.validade.toISOString().slice(0,10) : ''}" style="width:130px" title="Data de validade (deixe vazio = sem prazo)">
-        <button class="btn-adm" data-i="${i}" data-acao="salvar-validade">✓</button>
-      </div>`;
-    h += `<tr>
-      <td>${u.usuario||'—'}</td>
-      <td>${u.nome||'—'}</td>
-      <td>${u.empresa||'—'}</td>
-      <td>${u.email||'—'}</td>
-      <td>${fmtData(u.criadoEm)}</td>
-      <td>${fmtData(u.validade)}</td>
-      <td>${statusBadge}</td>
-      <td>${acoes}</td>
-    </tr>`;
+    const e = estado(u);
+    const bt = (txt, acao, cls) => '<button class="btn-adm '+(cls||'')+'" data-i="'+i+'" data-acao="'+acao+'">'+txt+'</button>';
+    const redef = '<button class="btn-adm" data-i="'+i+'" data-acao="redefinir" title="Envia ao e-mail da pessoa um link para criar nova senha">Redefinir senha</button>';
+    if(!u.uid){
+      h += '<tr><td>'+esc(u.email)+'</td><td style="color:var(--fg3)">Administrador da lista oficial</td><td style="color:var(--fg3)">todos</td><td></td>'+
+           '<td><span class="badge badge-admin">Administrador · nunca entrou</span></td><td><div class="acoes">'+redef+'</div></td></tr>';
+      return;
+    }
+    let acoes = '';
+    if(e === 'pen') acoes = bt('Aprovar','aprovar','ok') + bt('Recusar','recusar','rec');
+    else if(e === 'rec') acoes = bt('Aprovar','aprovar','ok');
+    else if(e !== 'adm') acoes = bt('Bloquear','bloquear','rec');
+    let progs;
+    if(e === 'adm') progs = '<span style="color:var(--fg3)">todos</span>';
+    else{
+      progs = '<div class="progs">';
+      PROGRAMAS.forEach((p,k)=>{
+        const pediu = pediuPrograma(u,p) && !u[p.campo];
+        const marcado = u[p.campo] || (e === 'pen' && pediu);
+        progs += '<label><input type="checkbox" data-i="'+i+'" data-prog="'+k+'"'+(marcado?' checked':'')+'> '+p.nome+
+                 (pediu ? ' <span class="pediu" title="A pessoa pediu acesso a este programa">pediu</span>' : '')+'</label>';
+      });
+      progs += '</div>';
+    }
+    const dt = u.validade ? u.validade.toISOString().slice(0,10) : '';
+    h += '<tr'+(e==='pen'?' style="background:var(--warn)"':'')+'><td>'+esc(u.email||u.usuario)+'</td>'+
+      '<td><input type="text" data-i="'+i+'" data-campo="nome" value="'+esc(u.nome)+'" placeholder="nome" style="width:110px"> '+
+      '<input type="text" data-i="'+i+'" data-campo="empresa" value="'+esc(u.empresa)+'" placeholder="empresa" style="width:110px"></td>'+
+      '<td>'+progs+'</td>'+
+      '<td>'+(e==='adm' ? '<span style="color:var(--fg3)">sem prazo</span>' : '<input type="date" data-i="'+i+'" data-campo="validade" value="'+dt+'">')+'</td>'+
+      '<td><span class="badge '+cor[e]+'">'+rotulo[e]+'</span></td>'+
+      '<td><div class="acoes">'+acoes+redef+bt('Gravar','gravar')+'</div></td></tr>';
   });
-  h += '</tbody></table></div>';
+  h += '</tbody></table></div><p style="font-size:11.5px;color:var(--fg3);margin-top:10px">'+
+    'Um único login por pessoa: o mesmo e-mail e senha servem para todos os programas, mas ela só abre os que estiverem marcados em “Programas”. '+
+    'Os cadastros novos chegam sozinhos, pela tela de login de qualquer programa, já com o programa pedido marcado (“pediu”). '+
+    '“Aprovar” libera os programas marcados (com a validade da linha, se houver); “Gravar” salva as mudanças da linha; '+
+    '“Recusar” e “Bloquear” impedem o uso e podem ser desfeitos a qualquer momento.</p>';
   corpo.innerHTML = h;
 
-  // Delegar eventos
   corpo.onclick = async ev=>{
-    const btn = ev.target.closest('[data-acao]');
+    const btn = ev.target.closest('button[data-acao]');
     if(!btn) return;
-    const i = +btn.dataset.i;
-    const u = lista[i];
-    const acao = btn.dataset.acao;
+    const i = +btn.dataset.i, u = lista[i], acao = btn.dataset.acao;
+    if(acao === 'redefinir'){
+      try{ await Nuvem.redefinirSenha(u.email); toast('Link de nova senha enviado para '+u.email+'.'); }
+      catch(e){ toast('Erro: '+e.message, true); }
+      return;
+    }
+    const val = c => { const el = corpo.querySelector('[data-i="'+i+'"][data-campo="'+c+'"]'); return el ? el.value : ''; };
+    const campos = { nome: val('nome'), empresa: val('empresa') };
+    if(estado(u) !== 'adm') campos.validade = val('validade') || null;
+    let marcou = false;
+    PROGRAMAS.forEach((p,k)=>{
+      const cb = corpo.querySelector('input[data-i="'+i+'"][data-prog="'+k+'"]');
+      if(cb){ campos[p.campo] = cb.checked; if(cb.checked) marcou = true; }
+    });
+    if(acao === 'aprovar'){
+      if(!marcou){ toast('Marque em “Programas” ao menos um programa para liberar.', true); return; }
+      campos.recusado = false;
+    }else if(acao === 'recusar' || acao === 'bloquear'){
+      PROGRAMAS.forEach(p => { campos[p.campo] = false; });
+      if(acao === 'recusar') campos.recusado = true;
+    }
     btn.disabled = true;
     try{
-      if(acao === 'liberar'){
-        await Nuvem.atualizarUsuario(u.uid, {ativo:true, recusado:false});
-        toast('Usuário liberado: ' + u.usuario);
-      } else if(acao === 'revogar'){
-        await Nuvem.atualizarUsuario(u.uid, {ativo:false});
-        toast('Acesso revogado: ' + u.usuario);
-      } else if(acao === 'recusar'){
-        await Nuvem.atualizarUsuario(u.uid, {ativo:false, recusado:true});
-        toast('Usuário recusado: ' + u.usuario);
-      } else if(acao === 'salvar-validade'){
-        const inp = corpo.querySelector(`input[data-campo="validade"][data-i="${i}"]`);
-        const val = inp ? inp.value : '';
-        await Nuvem.atualizarUsuario(u.uid, {validade: val || null});
-        toast('Validade salva: ' + u.usuario);
-      }
-      // Recarregar lista
-      const nova = await Nuvem.listarUsuarios();
-      renderAdmin(nova);
-    }catch(e){
-      toast('Erro: ' + e.message, true);
-      btn.disabled = false;
-    }
+      await Nuvem.atualizarUsuario(u.uid, campos);
+      toast('Usuário atualizado.');
+      renderAdmin(await Nuvem.listarUsuarios());
+      atualizarSeloPendentes();
+    }catch(e){ toast('Erro: '+e.message, true); btn.disabled = false; }
   };
 }
 </script>
