@@ -150,15 +150,127 @@ tbody td{padding:5px 8px;border-top:1px solid var(--border);vertical-align:middl
 #modal .m-btn{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:12px;cursor:pointer;color:var(--fg);width:100%;text-align:left;margin-bottom:6px}
 #modal .m-btn:hover{background:var(--tab-hover)}
 #modal .m-close{background:none;border:none;font-size:18px;cursor:pointer;color:var(--fg3);float:right;line-height:1}
+
+/* ── LOGIN ── */
+#login{position:fixed;top:0;right:0;bottom:0;left:0;z-index:9998;overflow-y:auto;
+  background:linear-gradient(135deg,#17365D 0%,#0f1e35 100%);
+  display:flex;align-items:flex-start;justify-content:center;padding:40px 16px 32px;}
+#login .cx{width:100%;max-width:420px;margin:auto;}
+#login .norma{font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.62);}
+#login h2{font-size:24px;font-weight:700;line-height:1.2;margin:6px 0 4px;text-wrap:balance;color:#fff;}
+#login .sub{font-size:13.5px;color:rgba(255,255,255,.78);margin-bottom:24px;}
+#login label{display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.85);margin-bottom:5px;}
+#login input{width:100%;padding:11px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.3);
+  background:rgba(255,255,255,.1);color:#fff;font-size:14px;margin-bottom:14px;font-family:inherit;}
+#login input:focus{outline:2px solid #9cc3ff;outline-offset:1px;}
+#login input::placeholder{color:rgba(255,255,255,.45);}
+#login button{width:100%;padding:12px;border-radius:6px;border:none;background:#2563EB;color:#fff;
+  font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
+#login button:hover{background:#1d4ed8;}
+#login button[disabled]{opacity:.6;cursor:default;}
+#login .msg{margin-top:14px;padding:10px 12px;border-radius:6px;font-size:13px;line-height:1.5;display:none;}
+#login .msg.erro{display:block;background:#7a2e0e;color:#ffd9c7;}
+#login .msg.info{display:block;background:rgba(255,255,255,.12);color:rgba(255,255,255,.9);}
+#login .alt{background:none;border:none;color:#9cc3ff;font-weight:600;font-size:13.5px;min-height:44px;width:auto;padding:8px 4px;text-decoration:underline;cursor:pointer;}
+#login .alt:hover{background:none;color:#fff;}
+#login .linha-alt{margin-top:10px;text-align:center;font-size:13px;color:rgba(255,255,255,.7);}
+#login .esqueci{text-align:right;margin:-6px 0 10px;}
+#login .esqueci .alt{font-size:12.5px;min-height:32px;padding:4px 0;}
+#login .dica{font-size:11.5px;color:rgba(255,255,255,.6);margin:-8px 0 14px;}
+#login .rodape{font-size:11.5px;color:rgba(255,255,255,.55);margin-top:22px;line-height:1.5;}
+
+/* ── ADMIN PAINEL ── */
+.lista-nuvem{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:12px;}
+.lista-nuvem th{background:var(--bg);color:var(--fg2);padding:6px 8px;text-align:left;font-size:11px;border-bottom:1px solid var(--border);}
+.lista-nuvem td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.lista-nuvem .acoes{display:flex;flex-wrap:wrap;gap:4px;}
+.lista-nuvem .badge{white-space:nowrap;display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;}
+.badge-ok{background:var(--ok);color:var(--ok-fg);}
+.badge-pend{background:var(--warn);color:var(--warn-fg);}
+.badge-admin{background:var(--accent);color:#fff;}
+.lista-nuvem input[type=date],.lista-nuvem input[type=text]{padding:4px 6px;border:1px solid var(--inp-border);
+  border-radius:4px;background:var(--inp);font-size:11px;color:var(--fg);}
+.btn-adm{padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--fg);font-size:11px;font-weight:600;cursor:pointer;}
+.btn-adm:hover{opacity:.8;}
+.btn-adm.ok{background:var(--ok);border-color:var(--ok-border);color:var(--ok-fg);}
+.btn-adm.rec{background:var(--warn);border-color:var(--warn-border);color:var(--warn-fg);}
+
+/* ── SESSAO BAR ── */
+#sessao-bar{display:none;align-items:center;gap:6px;font-size:11px;color:var(--nav-fg)}
+#sessao-bar.vis{display:flex}
+.sessao-nome{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.85}
+.sessao-admin{background:rgba(255,255,255,.25);border-radius:3px;padding:1px 5px;font-size:10px;font-weight:700}
 </style>
+
+<!-- LOGIN -->
+<div id="login" hidden>
+  <div class="cx">
+    <div class="norma">IP-06/2004 · ABNT NBR 9781 · ABNT NBR 15953</div>
+    <h2>Pavimento Intertravado</h2>
+    <div class="sub" id="login-sub">Acesso restrito. Informe seu e-mail e a senha.</div>
+    <form id="form-login" autocomplete="on">
+      <label for="log_usuario">E-mail</label>
+      <input type="email" id="log_usuario" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="seu e-mail">
+      <label for="log_senha">Senha</label>
+      <input type="password" id="log_senha" autocomplete="current-password" placeholder="sua senha">
+      <div class="esqueci"><button type="button" class="alt" id="btn-esqueci">Esqueci minha senha</button></div>
+      <button type="submit" id="btn-entrar">Entrar</button>
+      <div class="linha-alt">Ainda não tem conta? <button type="button" class="alt" id="ir-cadastro">Criar conta</button></div>
+    </form>
+    <form id="form-cadastro" autocomplete="on" hidden>
+      <label for="cad_nome">Nome completo</label>
+      <input type="text" id="cad_nome" autocomplete="name" maxlength="120" placeholder="seu nome">
+      <label for="cad_empresa">Empresa ou órgão</label>
+      <input type="text" id="cad_empresa" autocomplete="organization" maxlength="120" placeholder="onde você trabalha">
+      <label for="cad_email">E-mail</label>
+      <input type="email" id="cad_email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="seu e-mail">
+      <label for="cad_senha">Senha</label>
+      <input type="password" id="cad_senha" autocomplete="new-password" placeholder="mínimo de 8 caracteres">
+      <label for="cad_senha2">Repita a senha</label>
+      <input type="password" id="cad_senha2" autocomplete="new-password" placeholder="repita a senha">
+      <div class="dica">Seu acesso só é liberado depois que o administrador aprovar o cadastro.</div>
+      <button type="submit" id="btn-cadastrar">Solicitar acesso</button>
+      <div class="linha-alt">Já tem conta? <button type="button" class="alt" id="ir-login">Entrar</button></div>
+    </form>
+    <div id="login-espera" hidden>
+      <p style="color:rgba(255,255,255,.85);font-size:14px;margin-bottom:16px;">Seu cadastro está em análise pelo administrador. Você receberá acesso assim que for aprovado.</p>
+      <button type="button" id="btn-sair-espera">Sair</button>
+    </div>
+    <div class="msg" id="login-msg"></div>
+    <div class="rodape">
+      Seu cadastro é analisado pelo administrador antes da liberação.<br>
+      Pavimento Intertravado · Total Civil
+    </div>
+  </div>
+</div>
+
+<!-- PAINEL ADMIN (modal) -->
+<div id="admin-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;overflow-y:auto;padding:20px 12px;">
+  <div style="background:var(--bg2);border-radius:10px;max-width:860px;margin:auto;padding:20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <h2 style="font-size:15px;font-weight:700;">Gerenciar Usuários</h2>
+      <button onclick="fecharAdmin()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--fg3);">×</button>
+    </div>
+    <div id="admin-corpo">Carregando…</div>
+  </div>
+</div>
 
 <!-- HEADER -->
 <div id="hdr">
   <div id="hdr-title">Pavimento Intertravado<small>IP-06/2004 · ABNT NBR 9781 · ABNT NBR 15953:2026</small></div>
+  <span id="sessao-bar">
+    <span class="sessao-nome" id="sessao-nome"></span>
+    <span class="sessao-admin" id="sessao-admin" hidden>Admin</span>
+  </span>
+  <button class="hdr-btn" id="btn-usuarios" onclick="abrirAdmin()" hidden>Usuários</button>
+  <button class="hdr-btn" id="btn-sair" onclick="confirmarSair()" hidden>Sair</button>
   <button class="hdr-btn" onclick="toggleTheme()">☀ Tema</button>
   <button class="hdr-btn" onclick="ajusteFont(-1)">A−</button>
   <button class="hdr-btn" onclick="ajusteFont(1)">A+</button>
 </div>
+
+<!-- APP (oculto até login ser validado) -->
+<div id="app-content" hidden>
 
 <!-- TOOLBAR -->
 <div id="toolbar">
@@ -1538,4 +1650,456 @@ document.querySelectorAll('.tab').forEach(t=>{
   topoRows=[{est:0,tEsq:100,tEixo:100,tDir:100,greide:100,larg:6},{est:20,tEsq:100,tEixo:100,tDir:100,greide:100,larg:6}];
   renderTopoTable();
 })();
+</script>
+
+</div><!-- /#app-content -->
+
+<script src="firebase-config.js"></script>
+
+<script type="module">
+/* ============================================================
+   NUVEM — autenticação Firebase com aprovação de administrador
+   Sem firebase-config.js válido, o programa segue em modo local (sem login).
+   ============================================================ */
+const SDK = 'https://www.gstatic.com/firebasejs/12.19.0/';
+
+const Nuvem = {
+  disponivel: false,
+  motivo: '',
+  usuario: null,
+  _fb: null,
+  aoMudarSessao: null
+};
+window.Nuvem = Nuvem;
+
+function cfgValida(c){
+  return c && typeof c.apiKey === 'string' && c.apiKey.length > 10
+      && !/COLE_AQUI|SUA_CHAVE|xxxx/i.test(c.apiKey)
+      && typeof c.projectId === 'string' && c.projectId.length > 0;
+}
+
+(async function iniciar(){
+  const cfg = window.FIREBASE_CONFIG;
+  if(!cfgValida(cfg)){
+    Nuvem.motivo = 'sem_configuracao';
+    document.dispatchEvent(new CustomEvent('nuvem-pronta'));
+    return;
+  }
+  try{
+    const [{initializeApp}, auth, fs] = await Promise.all([
+      import(SDK+'firebase-app.js'),
+      import(SDK+'firebase-auth.js'),
+      import(SDK+'firebase-firestore.js')
+    ]);
+    const app = initializeApp(cfg);
+    const a = auth.getAuth(app);
+    const d = fs.getFirestore(app);
+    await auth.setPersistence(a, auth.browserLocalPersistence).catch(()=>{});
+    Nuvem._fb = {a, d, auth, fs};
+    Nuvem.disponivel = true;
+    auth.onAuthStateChanged(a, async (u)=>{
+      if(!u){ Nuvem.usuario = null; if(Nuvem.aoMudarSessao) Nuvem.aoMudarSessao(null); return; }
+      try{ Nuvem.usuario = await carregarPerfil(u); }
+      catch(e){ Nuvem.usuario = {uid:u.uid, usuario:nomeDeEmail(u.email), erro:(e&&e.message)||String(e)}; }
+      if(Nuvem.aoMudarSessao) Nuvem.aoMudarSessao(Nuvem.usuario);
+    });
+  }catch(e){
+    Nuvem.motivo = 'falha_sdk';
+    Nuvem.detalhe = (e && e.message) || String(e);
+  }
+  document.dispatchEvent(new CustomEvent('nuvem-pronta'));
+})();
+
+function nomeDeEmail(email){ return String(email||'').split('@')[0]; }
+function paraData(v){
+  if(!v) return null;
+  if(typeof v.toDate === 'function') return v.toDate();
+  const d = (v instanceof Date) ? v : new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+function listaAdmins(){ return (window.ADMINS || []).map(x => String(x).toLowerCase()); }
+function emailDeUsuario(u){ return String(u||'').trim().toLowerCase(); }
+
+async function carregarPerfil(u){
+  const {d, fs} = Nuvem._fb;
+  const ref = fs.doc(d, 'usuarios', u.uid);
+  let snap = await fs.getDoc(ref);
+  if(!snap.exists()){
+    const pend = Nuvem._pendente || {nome:'', empresa:''};
+    await fs.setDoc(ref, {
+      usuario: nomeDeEmail(u.email), email: u.email || '',
+      nome: pend.nome, empresa: pend.empresa, ativo: false, admin: false, recusado: false,
+      validade: null, criadoEm: fs.serverTimestamp()
+    });
+    Nuvem._pendente = null;
+    snap = await fs.getDoc(ref);
+  }
+  const p = snap.data() || {};
+  const venc = paraData(p.validade);
+  const ehAdmin = listaAdmins().indexOf(String(u.email||'').toLowerCase()) >= 0 || !!p.admin;
+  return {
+    uid: u.uid, email: u.email || '',
+    usuario: p.usuario || nomeDeEmail(u.email),
+    nome: p.nome || '', empresa: p.empresa || '',
+    admin: ehAdmin, ativo: !!p.ativo, recusado: !!p.recusado, validade: venc,
+    vencida: !!(venc && venc.getTime() < Date.now()),
+    get liberado(){ return this.admin || (this.ativo && !this.vencida); }
+  };
+}
+
+Nuvem.entrar = async function(usuario, senha){
+  if(!Nuvem.disponivel) throw new Error('Nuvem não configurada.');
+  const {a, auth} = Nuvem._fb;
+  try{
+    await auth.signInWithEmailAndPassword(a, emailDeUsuario(usuario), senha);
+  }catch(e){
+    const c = (e && e.code) || '';
+    if(/invalid-credential|wrong-password|user-not-found|invalid-email/.test(c))
+      throw new Error('Usuário ou senha incorretos.');
+    if(/too-many-requests/.test(c))
+      throw new Error('Muitas tentativas. Aguarde alguns minutos e tente de novo.');
+    if(/network/.test(c))
+      throw new Error('Sem conexão com o servidor. Verifique a internet.');
+    if(/operation-not-allowed/.test(c))
+      throw new Error('Login por usuário e senha não está ativado no Firebase.');
+    if(/unauthorized-domain/.test(c))
+      throw new Error('Este endereço não está autorizado no Firebase (Authentication › Settings › Authorized domains).');
+    throw new Error('Não foi possível entrar: ' + (e.message || c));
+  }
+};
+
+Nuvem.cadastrar = async function(nome, empresa, email, senha){
+  if(!Nuvem.disponivel) throw new Error('Nuvem não configurada.');
+  const {a, auth} = Nuvem._fb;
+  nome = String(nome||'').trim().slice(0,120);
+  empresa = String(empresa||'').trim().slice(0,120);
+  if(nome.length < 3) throw new Error('Informe seu nome completo.');
+  if(!empresa) throw new Error('Informe a empresa ou o órgão.');
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email||'').trim())) throw new Error('Informe um e-mail válido.');
+  if(String(senha||'').length < 8) throw new Error('A senha deve ter ao menos 8 caracteres.');
+  Nuvem._pendente = {nome, empresa};
+  try{
+    await auth.createUserWithEmailAndPassword(a, emailDeUsuario(email), senha);
+  }catch(e){
+    Nuvem._pendente = null;
+    const c = (e && e.code) || '';
+    if(/email-already-in-use/.test(c)) throw new Error('Este e-mail já tem cadastro. Use "Entrar" ou peça ao administrador.');
+    if(/weak-password/.test(c)) throw new Error('Senha fraca. Use ao menos 8 caracteres.');
+    if(/invalid-email/.test(c)) throw new Error('E-mail inválido.');
+    if(/too-many-requests/.test(c)) throw new Error('Muitas tentativas. Aguarde alguns minutos e tente de novo.');
+    if(/network/.test(c)) throw new Error('Sem conexão com o servidor. Verifique a internet.');
+    if(/operation-not-allowed/.test(c)) throw new Error('Cadastro por e-mail e senha não está ativado no Firebase.');
+    if(/unauthorized-domain/.test(c)) throw new Error('Este endereço não está autorizado no Firebase (Authentication › Settings › Authorized domains).');
+    throw new Error('Não foi possível criar a conta: ' + (e.message || c));
+  }
+};
+
+Nuvem.redefinirSenha = async function(email){
+  if(!Nuvem.disponivel) throw new Error('Nuvem não configurada.');
+  const {a, auth} = Nuvem._fb;
+  const em = emailDeUsuario(email);
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) throw new Error('Digite seu e-mail no campo acima e toque em "Esqueci minha senha".');
+  try{
+    await auth.sendPasswordResetEmail(a, em);
+  }catch(e){
+    const c = (e && e.code) || '';
+    if(/user-not-found/.test(c)) return;
+    if(/invalid-email/.test(c)) throw new Error('E-mail inválido.');
+    if(/too-many-requests/.test(c)) throw new Error('Muitas tentativas. Aguarde alguns minutos e tente de novo.');
+    if(/network/.test(c)) throw new Error('Sem conexão com o servidor. Verifique a internet.');
+    throw new Error('Não foi possível enviar o e-mail: ' + (e.message || c));
+  }
+};
+
+Nuvem.sair = async function(){
+  if(!Nuvem.disponivel) return;
+  const {a, auth} = Nuvem._fb;
+  await auth.signOut(a);
+};
+
+/* ---- Administração ---- */
+Nuvem.listarUsuarios = async function(){
+  const {d, fs} = Nuvem._fb, u = Nuvem.usuario;
+  if(!u || !u.admin) throw new Error('Somente administradores.');
+  const snap = await fs.getDocs(fs.query(fs.collection(d,'usuarios'), fs.limit(500)));
+  const admins = listaAdmins();
+  const lista = snap.docs.map(x=>{
+    const v = x.data();
+    const venc = paraData(v.validade);
+    return {uid:x.id, usuario:v.usuario||'', nome:v.nome||'', empresa:v.empresa||'',
+            email:v.email||'', ativo:!!v.ativo, recusado:!!v.recusado,
+            criadoEm: paraData(v.criadoEm), validade:venc,
+            admin: admins.indexOf(String(v.email||'').toLowerCase()) >= 0 || !!v.admin,
+            vencida: !!(venc && venc.getTime() < Date.now())};
+  }).sort((a,b)=> (a.usuario||'').localeCompare(b.usuario||''));
+  admins.forEach(em => {
+    if(!lista.some(x => String(x.email||'').toLowerCase() === em))
+      lista.push({uid:null, usuario:nomeDeEmail(em), nome:'', empresa:'', email:em,
+                  ativo:true, recusado:false, criadoEm:null, validade:null, admin:true,
+                  vencida:false, nuncaEntrou:true});
+  });
+  return lista;
+};
+
+Nuvem.atualizarUsuario = async function(uid, campos){
+  const {d, fs} = Nuvem._fb, u = Nuvem.usuario;
+  if(!u || !u.admin) throw new Error('Somente administradores.');
+  const corpo = {};
+  if('ativo'    in campos) corpo.ativo    = !!campos.ativo;
+  if('recusado' in campos) corpo.recusado = !!campos.recusado;
+  if('nome'     in campos) corpo.nome     = String(campos.nome||'').slice(0,120);
+  if('empresa'  in campos) corpo.empresa  = String(campos.empresa||'').slice(0,120);
+  if('validade' in campos) corpo.validade = campos.validade ? new Date(campos.validade+'T23:59:59') : null;
+  await fs.updateDoc(fs.doc(d,'usuarios',uid), corpo);
+};
+
+/* ============================================================
+   UI DE LOGIN
+   ============================================================ */
+function mostrarMsgLogin(txt, tipo){
+  const el = document.getElementById('login-msg');
+  el.textContent = txt;
+  el.className = 'msg ' + (tipo||'info');
+}
+
+function setLoginBusy(busy){
+  document.querySelectorAll('#login button').forEach(b=>b.disabled=busy);
+}
+
+function irParaLogin(){
+  document.getElementById('form-login').hidden = false;
+  document.getElementById('form-cadastro').hidden = true;
+  document.getElementById('login-espera').hidden = true;
+  document.getElementById('login-sub').textContent = 'Acesso restrito. Informe seu e-mail e a senha.';
+  mostrarMsgLogin('','');
+}
+function irParaCadastro(){
+  document.getElementById('form-login').hidden = true;
+  document.getElementById('form-cadastro').hidden = false;
+  document.getElementById('login-espera').hidden = true;
+  document.getElementById('login-sub').textContent = 'Crie sua conta para solicitar acesso.';
+  mostrarMsgLogin('','');
+}
+function irParaEspera(){
+  document.getElementById('form-login').hidden = true;
+  document.getElementById('form-cadastro').hidden = true;
+  document.getElementById('login-espera').hidden = false;
+  document.getElementById('login-sub').textContent = 'Cadastro em análise pelo administrador.';
+  mostrarMsgLogin('','');
+}
+
+document.getElementById('ir-cadastro').addEventListener('click', irParaCadastro);
+document.getElementById('ir-login').addEventListener('click', irParaLogin);
+
+document.getElementById('btn-esqueci').addEventListener('click', async ()=>{
+  const em = document.getElementById('log_usuario').value.trim();
+  setLoginBusy(true);
+  try{
+    await Nuvem.redefinirSenha(em);
+    mostrarMsgLogin('Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha.','info');
+  }catch(e){ mostrarMsgLogin(e.message,'erro'); }
+  setLoginBusy(false);
+});
+
+document.getElementById('form-login').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const usuario = document.getElementById('log_usuario').value.trim();
+  const senha   = document.getElementById('log_senha').value;
+  if(!usuario||!senha){ mostrarMsgLogin('Preencha o e-mail e a senha.','erro'); return; }
+  setLoginBusy(true);
+  mostrarMsgLogin('Entrando…','info');
+  try{
+    await Nuvem.entrar(usuario, senha);
+    // aoMudarSessao cuidará do restante
+  }catch(e){ mostrarMsgLogin(e.message,'erro'); setLoginBusy(false); }
+});
+
+document.getElementById('form-cadastro').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const nome    = document.getElementById('cad_nome').value.trim();
+  const empresa = document.getElementById('cad_empresa').value.trim();
+  const email   = document.getElementById('cad_email').value.trim();
+  const senha   = document.getElementById('cad_senha').value;
+  const senha2  = document.getElementById('cad_senha2').value;
+  if(senha !== senha2){ mostrarMsgLogin('As senhas não coincidem.','erro'); return; }
+  setLoginBusy(true);
+  mostrarMsgLogin('Criando conta…','info');
+  try{
+    await Nuvem.cadastrar(nome, empresa, email, senha);
+  }catch(e){ mostrarMsgLogin(e.message,'erro'); setLoginBusy(false); }
+});
+
+document.getElementById('btn-sair-espera').addEventListener('click', async ()=>{
+  await Nuvem.sair();
+});
+
+/* ---- Mudança de sessão ---- */
+Nuvem.aoMudarSessao = function(u){
+  const loginEl = document.getElementById('login');
+  const appEl   = document.getElementById('app-content');
+  const barEl   = document.getElementById('sessao-bar');
+  const nomeEl  = document.getElementById('sessao-nome');
+  const admEl   = document.getElementById('sessao-admin');
+  const btnUsr  = document.getElementById('btn-usuarios');
+  const btnSair = document.getElementById('btn-sair');
+
+  if(!u){
+    // Sem sessão — mostra login se a nuvem estiver configurada
+    if(Nuvem.disponivel){
+      loginEl.hidden = false;
+      appEl.hidden = true;
+    }
+    barEl.classList.remove('vis');
+    if(btnSair) btnSair.hidden = true;
+    if(btnUsr)  btnUsr.hidden = true;
+    irParaLogin();
+    return;
+  }
+
+  if(u.erro){
+    mostrarMsgLogin('Erro ao carregar perfil: ' + u.erro, 'erro');
+    return;
+  }
+
+  if(u.recusado){
+    irParaEspera();
+    document.getElementById('login-espera').querySelector('p').textContent =
+      'Seu acesso foi recusado pelo administrador. Entre em contato para mais informações.';
+    loginEl.hidden = false; appEl.hidden = true;
+    return;
+  }
+
+  if(!u.liberado){
+    irParaEspera();
+    loginEl.hidden = false; appEl.hidden = true;
+    return;
+  }
+
+  // Acesso liberado
+  loginEl.hidden = true;
+  appEl.hidden = false;
+  barEl.classList.add('vis');
+  nomeEl.textContent = u.nome || u.usuario || u.email;
+  if(admEl){ admEl.hidden = !u.admin; }
+  if(btnSair) btnSair.hidden = false;
+  if(btnUsr)  btnUsr.hidden = !u.admin;
+  setLoginBusy(false);
+};
+
+/* ---- Sair ---- */
+window.confirmarSair = async function(){
+  if(!confirm('Deseja encerrar a sessão?')) return;
+  await Nuvem.sair();
+};
+
+/* ---- Init: aguarda nuvem-pronta ---- */
+document.addEventListener('nuvem-pronta', ()=>{
+  if(!Nuvem.disponivel){
+    // Modo local — não exige login
+    document.getElementById('login').hidden = true;
+    document.getElementById('app-content').hidden = false;
+    console.info('Pavimento Intertravado: modo local (firebase-config.js não encontrado).');
+  }
+  // Se disponível, onAuthStateChanged já vai chamar aoMudarSessao
+});
+
+/* ============================================================
+   PAINEL DE ADMINISTRAÇÃO
+   ============================================================ */
+window.abrirAdmin = async function(){
+  const bg = document.getElementById('admin-bg');
+  const corpo = document.getElementById('admin-corpo');
+  bg.style.display = 'flex';
+  corpo.innerHTML = '<p style="font-size:13px;color:var(--fg2)">Carregando…</p>';
+  try{
+    const lista = await Nuvem.listarUsuarios();
+    renderAdmin(lista);
+  }catch(e){
+    corpo.innerHTML = '<p style="color:var(--warn-fg)">'+e.message+'</p>';
+  }
+};
+
+window.fecharAdmin = function(){
+  document.getElementById('admin-bg').style.display = 'none';
+};
+
+function fmtData(d){
+  if(!d) return '—';
+  return d.toLocaleDateString('pt-BR');
+}
+
+function renderAdmin(lista){
+  const corpo = document.getElementById('admin-corpo');
+  if(!lista.length){ corpo.innerHTML = '<p style="color:var(--fg2);font-size:13px">Nenhum usuário cadastrado.</p>'; return; }
+  let h = `<div style="overflow-x:auto"><table class="lista-nuvem">
+  <thead><tr>
+    <th>Usuário</th><th>Nome</th><th>Empresa</th><th>E-mail</th>
+    <th>Cadastro</th><th>Validade</th><th>Status</th><th>Ações</th>
+  </tr></thead><tbody>`;
+  lista.forEach((u,i)=>{
+    const statusBadge = u.admin
+      ? `<span class="badge badge-admin">Admin</span>`
+      : u.nuncaEntrou
+        ? `<span class="badge" style="background:var(--out);color:var(--accent2)">Nunca entrou</span>`
+        : u.recusado
+          ? `<span class="badge badge-pend">Recusado</span>`
+          : u.ativo
+            ? (u.vencida ? `<span class="badge badge-pend">Vencido</span>` : `<span class="badge badge-ok">Ativo</span>`)
+            : `<span class="badge badge-pend">Pendente</span>`;
+    const acoes = u.admin || u.nuncaEntrou ? '—' : `
+      <div class="acoes">
+        ${!u.ativo && !u.recusado ? `<button class="btn-adm ok" data-i="${i}" data-acao="liberar">Liberar</button>` : ''}
+        ${u.ativo ? `<button class="btn-adm rec" data-i="${i}" data-acao="revogar">Revogar</button>` : ''}
+        ${!u.recusado ? `<button class="btn-adm rec" data-i="${i}" data-acao="recusar">Recusar</button>` : ''}
+        ${u.recusado ? `<button class="btn-adm ok" data-i="${i}" data-acao="liberar">Reativar</button>` : ''}
+        <input type="date" data-i="${i}" data-campo="validade" value="${u.validade ? u.validade.toISOString().slice(0,10) : ''}" style="width:130px" title="Data de validade (deixe vazio = sem prazo)">
+        <button class="btn-adm" data-i="${i}" data-acao="salvar-validade">✓</button>
+      </div>`;
+    h += `<tr>
+      <td>${u.usuario||'—'}</td>
+      <td>${u.nome||'—'}</td>
+      <td>${u.empresa||'—'}</td>
+      <td>${u.email||'—'}</td>
+      <td>${fmtData(u.criadoEm)}</td>
+      <td>${fmtData(u.validade)}</td>
+      <td>${statusBadge}</td>
+      <td>${acoes}</td>
+    </tr>`;
+  });
+  h += '</tbody></table></div>';
+  corpo.innerHTML = h;
+
+  // Delegar eventos
+  corpo.addEventListener('click', async ev=>{
+    const btn = ev.target.closest('[data-acao]');
+    if(!btn) return;
+    const i = +btn.dataset.i;
+    const u = lista[i];
+    const acao = btn.dataset.acao;
+    btn.disabled = true;
+    try{
+      if(acao === 'liberar'){
+        await Nuvem.atualizarUsuario(u.uid, {ativo:true, recusado:false});
+        toast('Usuário liberado: ' + u.usuario);
+      } else if(acao === 'revogar'){
+        await Nuvem.atualizarUsuario(u.uid, {ativo:false});
+        toast('Acesso revogado: ' + u.usuario);
+      } else if(acao === 'recusar'){
+        await Nuvem.atualizarUsuario(u.uid, {ativo:false, recusado:true});
+        toast('Usuário recusado: ' + u.usuario);
+      } else if(acao === 'salvar-validade'){
+        const inp = corpo.querySelector(`input[data-campo="validade"][data-i="${i}"]`);
+        const val = inp ? inp.value : '';
+        await Nuvem.atualizarUsuario(u.uid, {validade: val || null});
+        toast('Validade salva: ' + u.usuario);
+      }
+      // Recarregar lista
+      const nova = await Nuvem.listarUsuarios();
+      renderAdmin(nova);
+    }catch(e){
+      toast('Erro: ' + e.message, true);
+      btn.disabled = false;
+    }
+  });
+}
 </script>
