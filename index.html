@@ -1672,6 +1672,42 @@ const Nuvem = {
 };
 window.Nuvem = Nuvem;
 
+/* Definir aoMudarSessao imediatamente, antes de qualquer async */
+Nuvem.aoMudarSessao = function(u){
+  const loginEl = document.getElementById('login');
+  const appEl   = document.getElementById('app-content');
+  const barEl   = document.getElementById('sessao-bar');
+  const nomeEl  = document.getElementById('sessao-nome');
+  const admEl   = document.getElementById('sessao-admin');
+  const btnUsr  = document.getElementById('btn-usuarios');
+  const btnSair = document.getElementById('btn-sair');
+
+  if(!u){
+    if(Nuvem.disponivel){ loginEl.hidden = false; appEl.hidden = true; }
+    barEl.classList.remove('vis');
+    if(btnSair) btnSair.hidden = true;
+    if(btnUsr)  btnUsr.hidden = true;
+    irParaLogin();
+    return;
+  }
+  if(u.erro){ mostrarMsgLogin('Erro ao carregar perfil: '+u.erro,'erro'); return; }
+  if(u.recusado){
+    irParaEspera();
+    const p = document.querySelector('#login-espera p');
+    if(p) p.textContent = 'Seu acesso foi recusado pelo administrador. Entre em contato para mais informações.';
+    loginEl.hidden = false; appEl.hidden = true; return;
+  }
+  if(!u.liberado){ irParaEspera(); loginEl.hidden = false; appEl.hidden = true; return; }
+  // Acesso liberado
+  loginEl.hidden = true; appEl.hidden = false;
+  barEl.classList.add('vis');
+  nomeEl.textContent = u.nome || u.usuario || u.email;
+  if(admEl) admEl.hidden = !u.admin;
+  if(btnSair) btnSair.hidden = false;
+  if(btnUsr)  btnUsr.hidden = !u.admin;
+  setLoginBusy(false);
+};
+
 function cfgValida(c){
   return c && typeof c.apiKey === 'string' && c.apiKey.length > 10
       && !/COLE_AQUI|SUA_CHAVE|xxxx/i.test(c.apiKey)
@@ -1932,59 +1968,6 @@ document.getElementById('form-cadastro').addEventListener('submit', async e=>{
 document.getElementById('btn-sair-espera').addEventListener('click', async ()=>{
   await Nuvem.sair();
 });
-
-/* ---- Mudança de sessão ---- */
-Nuvem.aoMudarSessao = function(u){
-  const loginEl = document.getElementById('login');
-  const appEl   = document.getElementById('app-content');
-  const barEl   = document.getElementById('sessao-bar');
-  const nomeEl  = document.getElementById('sessao-nome');
-  const admEl   = document.getElementById('sessao-admin');
-  const btnUsr  = document.getElementById('btn-usuarios');
-  const btnSair = document.getElementById('btn-sair');
-
-  if(!u){
-    // Sem sessão — mostra login se a nuvem estiver configurada
-    if(Nuvem.disponivel){
-      loginEl.hidden = false;
-      appEl.hidden = true;
-    }
-    barEl.classList.remove('vis');
-    if(btnSair) btnSair.hidden = true;
-    if(btnUsr)  btnUsr.hidden = true;
-    irParaLogin();
-    return;
-  }
-
-  if(u.erro){
-    mostrarMsgLogin('Erro ao carregar perfil: ' + u.erro, 'erro');
-    return;
-  }
-
-  if(u.recusado){
-    irParaEspera();
-    document.getElementById('login-espera').querySelector('p').textContent =
-      'Seu acesso foi recusado pelo administrador. Entre em contato para mais informações.';
-    loginEl.hidden = false; appEl.hidden = true;
-    return;
-  }
-
-  if(!u.liberado){
-    irParaEspera();
-    loginEl.hidden = false; appEl.hidden = true;
-    return;
-  }
-
-  // Acesso liberado
-  loginEl.hidden = true;
-  appEl.hidden = false;
-  barEl.classList.add('vis');
-  nomeEl.textContent = u.nome || u.usuario || u.email;
-  if(admEl){ admEl.hidden = !u.admin; }
-  if(btnSair) btnSair.hidden = false;
-  if(btnUsr)  btnUsr.hidden = !u.admin;
-  setLoginBusy(false);
-};
 
 /* ---- Sair ---- */
 window.confirmarSair = async function(){
